@@ -262,7 +262,27 @@ jobs:
           else
             echo "::warning::No signing configuration - building the release APK UNSIGNED."
           fi
-          ./gradlew "${args[@]}"
+          set +e
+          ./gradlew "${args[@]}" > /tmp/gradle-output.log 2>&1
+          gradle_exit=$?
+          set -e
+          if [ ${gradle_exit} -ne 0 ]; then
+            echo "::error::Gradle exited with code ${gradle_exit}. Extracting failure details:"
+            # Print the FAILURE section and surrounding context as annotations
+            grep -n -A 30 "^FAILURE:" /tmp/gradle-output.log | head -40 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            # Also print any "What went wrong" context
+            grep -n -A 10 "What went wrong" /tmp/gradle-output.log | head -15 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            # Print last 20 lines for context
+            echo "::error::--- last 20 lines of output ---"
+            tail -20 /tmp/gradle-output.log | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            exit 1
+          fi
 
       - name: Show APK outputs
         run: find app/build/outputs/apk -type f -name '*.apk' -exec ls -l {} + -exec sha256sum {} +
