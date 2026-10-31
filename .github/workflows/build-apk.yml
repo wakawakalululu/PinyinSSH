@@ -7,9 +7,10 @@
 #   2. downloads the prebuilt Go helper binaries (frpc, tailscale, tailscaled,
 #      nezha-agent) with tools/fetch-go-binaries.sh - they are NOT committed to
 #      git - and caches them between runs,
-#   3. runs "./gradlew --no-daemon assembleDebug assembleRelease",
-#   4. uploads the APKs as GitHub Actions artifacts; for tags it also creates a
-#      GitHub Release (named after the tag) with both APKs attached.
+#   3. checks LibTomMath's generated makefile source list,
+#   4. runs JVM unit tests, Android lint, and assembles debug/release APKs,
+#   5. verifies tag APK signing and creates SHA256SUMS; for tags it publishes
+#      the APKs and checksums to a GitHub Release.
 #
 # TRIGGERS
 #   push to "main"/"master" .... build + upload artifacts
@@ -23,6 +24,9 @@
 #   PhoneSecurityAssistant-debug-apk     app/build/outputs/apk/debug/*.apk
 #   PhoneSecurityAssistant-release-apk   app/build/outputs/apk/release/*.apk
 #                        (UNSIGNED unless the signing secrets below are set)
+#                        (tag releases require a signed release APK)
+#   SHA256SUMS            release APK checksum file (also attached to Releases)
+#   test-lint-reports     JVM test results and Android lint reports
 #   build-diagnostics    Gradle logs/reports - only uploaded when the build fails
 #
 # SIGNING (optional - repository secrets; details in the BUILDING-SIGNING file)
@@ -117,6 +121,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Validate release tag matches app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          app_version="$(awk -F '"' '$1 ~ /applicationVersionName[[:space:]]*=/ { print $2; exit }' build.gradle)"
+          expected_tag="v${app_version}"
+          if [[ -z "${app_version}" || "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "::error::Release tag '${GITHUB_REF_NAME}' must match app version tag '${expected_tag}'."
+            exit 1
+          fi
+          echo "Release tag matches app version ${app_version}."
+
+      - name: Check LibTomMath makefile consistency
+        working-directory: app/src/main/cpp/dropbear/libtommath
+        run: perl helper.pl --check-makefiles
 
       - name: Set up JDK ${{ env.JAVA_VERSION }} (Temurin)
         uses: actions/setup-java@v6
@@ -227,6 +246,10 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "${KEYSTORE_BASE64}" ]; then
+            if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+              echo "::error::Tagged releases require all signing secrets; refusing to publish an unsigned APK."
+              exit 1
+            fi
             echo "::warning::KEYSTORE_BASE64 is not set - the release APK will be UNSIGNED."
             echo "properties=" >> "$GITHUB_OUTPUT"
             exit 0
@@ -250,12 +273,14 @@ jobs:
           echo "Signing enabled; properties file: ${props}"
           echo "properties=${props}" >> "$GITHUB_OUTPUT"
 
-      - name: Assemble debug + release APKs
+      - name: Run unit tests, lint, and assemble APKs
         env:
           SIGNING_PROPERTIES: ${{ steps.signing.outputs.properties }}
         run: |
           # --no-daemon keeps CI clean; caching is handled by setup-gradle.
-          args=(--no-daemon --stacktrace assembleDebug assembleRelease)
+          # lint is non-blocking (abortOnError=false in the Android modules);
+          # its report is uploaded for review below.
+          args=(--no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug assembleRelease)
           if [ -n "${SIGNING_PROPERTIES}" ] && [ -f "${SIGNING_PROPERTIES}" ]; then
             echo "Building with signing configuration: ${SIGNING_PROPERTIES}"
             args+=("-PSshd4a.properties=${SIGNING_PROPERTIES}")
@@ -284,6 +309,39 @@ jobs:
             exit 1
           fi
 
+      - name: Verify release APK and create checksums
+        env:
+          SIGNING_PROPERTIES: ${{ steps.signing.outputs.properties }}
+          IS_TAG_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          release_dir="app/build/outputs/apk/release"
+          release_apk="$(find "${release_dir}" -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          if [[ -z "${release_apk}" ]]; then
+            echo "::error::No release APK found to verify."
+            exit 1
+          fi
+
+          if [[ "${IS_TAG_RELEASE}" == 'true' || -n "${SIGNING_PROPERTIES}" ]]; then
+            apksigner="${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS_VERSION}/apksigner"
+            "${apksigner}" verify --verbose --print-certs "${release_apk}"
+          else
+            echo "::warning::Unsigned branch build; APK signing verification is skipped."
+          fi
+
+          (cd "${release_dir}" && sha256sum ./*.apk > SHA256SUMS)
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-lint-reports
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Show APK outputs
         run: find app/build/outputs/apk -type f -name '*.apk' -exec ls -l {} + -exec sha256sum {} +
 
@@ -299,7 +357,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: PhoneSecurityAssistant-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/SHA256SUMS
           if-no-files-found: error
           retention-days: 30
 
@@ -341,11 +401,17 @@ jobs:
       - name: List release assets
         run: ls -l dist
 
+      - name: Verify release checksums
+        run: cd dist && sha256sum --check SHA256SUMS
+
       - name: Create GitHub Release (tag name = release name)
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          files: dist/*.apk
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS
           fail_on_unmatched_files: true
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

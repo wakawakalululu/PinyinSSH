@@ -1,5 +1,7 @@
 # 春夏秋手机安全助手
 
+<p align="center"><img src="assets/logo.svg" alt="春夏秋手机安全助手" width="720" /></p>
+
 **把 Android 设备变成一台可通过 SSH 访问的小主机。**
 
 春夏秋手机安全助手 在应用内运行完整的 `sshd` 服务器（基于 Dropbear），并提供 `rsync`、
@@ -13,6 +15,8 @@
 - **内网穿透**：托管官方 `frpc`，把本机 sshd 端口暴露到公网
 - **Tailscale 组网**：托管官方 `tailscaled`，加入自己的 tailnet
 - **哪吒监控上报**：托管官方 `nezha-agent`，向哪吒面板上报设备状态
+- **远程 ADB 桥接**：独立 SSH 入口、公钥授权与命令前缀策略，默认关闭
+- **远程桌面**：屏幕共享与可选触控控制
 - **WebDAV 文件访问**：通过 Android SAF 在系统文件选择器中只读浏览 HTTPS WebDAV 内容；不创建系统挂载路径
 
 | 项 | 值 |
@@ -35,6 +39,8 @@
 - [快速上手](#快速上手)
 - [提权模式详解](#提权模式详解)
 - [内置终端使用](#内置终端使用)
+- [远程 ADB 命令桥接](#远程-adb-命令桥接)
+- [远程桌面](#远程桌面)
 - [WebDAV 只读文件访问](#webdav-只读文件访问)
 - [文件同步使用](#文件同步使用)
 - [frpc 内网穿透配置教程](#frpc-内网穿透配置教程)
@@ -57,9 +63,7 @@
 > **注意**：应用**不会**启动 rsync daemon。客户端通过 SSH 调用远端 `rsync`
 > 完成同步（即常见的 `rsync -e ssh` 用法）。
 
-rsync-over-SSH 由远端客户端发起。只读 WebDAV SAF Provider 与 App 内 rclone 文件同步
-均已实现（MVP：WebDAV 只读浏览/流式读取；rclone 单向 copy、定时调度、重启恢复、完成通知），
-但尚未通过 Gradle 编译或真机验证（CI 当前在 assemble 步骤失败），不应视为已发布能力。
+rsync-over-SSH 由远端客户端发起。当前源码还包含只读 WebDAV SAF Provider、rclone 单向文件同步、远程 ADB 桥接与远程桌面。新增功能仍需在目标 Android 设备上验证；是否已进入某个 APK/Release，以对应构建和发布记录为准。
 
 服务端地址、凭据、权限模式、自启与远程工具启停均可在 App 的「设置」和对应管理页面配置。frpc、Tailscale 与哪吒的运行配置由 App 自动生成，无需手动编辑 TOML/YAML 文件。
 
@@ -70,6 +74,8 @@ rsync-over-SSH 由远端客户端发起。只读 WebDAV SAF Provider 与 App 内
 | SSH 服务 | sshd（Dropbear 2026.94） | 可配置端口（默认 2222）、监听接口、额外命令行选项、环境变量、家目录、登录 Shell |
 | 文件传输 | rsync 3.4.4 / sftp / scp | 由 OpenSSH 10.4p1 的 `sftp-server` 提供 sftp/scp 支持；无 rsync 守护进程 |
 | WebDAV | SAF 文档提供器 | 在系统文件选择器中只读浏览/打开 HTTPS WebDAV 文件；不创建本地文件系统挂载路径 |
+| 远程 ADB | SSH 命令桥接 | 独立 SSH 端口与授权密钥；默认空白名单拒绝所有命令，桥接默认关闭；ADB 未连接时不降级执行 |
+| 远程桌面 | 屏幕共享 | MediaProjection + HTTP MJPEG；触控需要无障碍服务；**无认证/TLS，仅限可信私有网络，禁止公网暴露** |
 | 登录认证 | 主用户名 + 主密码 | SHA-512 哈希后保存 |
 | | 一次性密码 | 允许登录时在应用界面上显示一个只可使用一次的密码 |
 | | 公钥登录 | 导入 `authorized_keys`（支持从文件或 https URL 导入、清空） |
@@ -228,6 +234,16 @@ rsync-over-SSH 由远端客户端发起。只读 WebDAV SAF Provider 与 App 内
   ```
 - 说明：选择 Root 权限但未找到 `su` 时会给出提示；选择 ADB 权限但尚未
   配对连接时，会提示先到「远程与监控」完成 ADB 配对与连接。
+
+## 远程 ADB 命令桥接
+
+这是与内置终端 ADB 模式不同的独立 SSH 入口。在「设置 → 远程 ADB 桥接」中显式启用后，第二个 Dropbear 实例会使用单独的授权公钥，并把命令转发给本机无线调试 ADB。默认命令策略为空白名单，会拒绝所有命令；可按需配置命令前缀白名单/黑名单或全开放模式。ADB 未连接时请求会失败，不会回退到 App/Root shell。此入口具备远程执行能力，只应在确认密钥与命令策略后启用。
+
+## 远程桌面
+
+「远程桌面」通过 MediaProjection 分享屏幕，默认 HTTP 端口为 `8888`；浏览器可查看 MJPEG 画面。启用系统无障碍服务后，浏览器还能发送点击/滑动操作。
+
+**安全限制：该 HTTP 服务没有认证和 TLS。任何能访问端口的人都能查看屏幕；启用无障碍后还可能操控设备。仅在可信私有网络使用，不要映射到公网，也不要用公开 frpc 转发。**
 
 ## WebDAV 只读文件访问
 
@@ -520,7 +536,7 @@ TUN 模式需要创建 `/dev/net/tun` 虚拟网卡并修改系统路由表，这
 ### 环境要求
 
 - Android SDK（`compileSdk 36`），并设置 `ANDROID_HOME`；
-- **NDK 30.0.14904198** 与 **CMake 4.1.2**（版本号见
+- **NDK 30.0.16248370** 与 **CMake 4.1.2**（版本号见
   `gradle/libs.versions.toml`；`app/CMakeLists.txt` 负责构建 native 组件）；
 - JDK：Gradle 工具链为 **Java 25**（见 `gradle/libs.versions.toml`）；
 - 依赖 `com.github.MuntashirAkon:libadb-android`（JitPack 仓库，
@@ -585,12 +601,11 @@ tools/fetch-go-binaries.sh --force arm64-v8a
 
 - 工作流 `.github/workflows/build-apk.yml` 默认下载 debug/release 所需 ABI 的
   Go 辅助二进制（`armeabi-v7a`、`arm64-v8a`、`x86_64`、`x86`，其中 x86 没有
-  上游 frpc 构建），再在 GitHub Actions 上构建 debug/release APK（需要 NDK/CMake）。
-- 构建产物（Artifacts）为 `PhoneSecurityAssistant-<版本>.apk`（release）和
-  `PhoneSecurityAssistant-<版本>-debug.apk`（debug），可直接安装测试；配置了
-  `KEYSTORE_BASE64` 等仓库 secrets 时 release 会签名（见
-  `BUILDING-SIGNING`），否则以未签名方式构建。推送 `v*` 标签时还会创建
-  GitHub Release 并附上两个 APK。
+  上游 frpc 构建），检查 LibTomMath makefile 与源码列表一致性，执行 JVM 单元测试与 Android lint，再构建 debug/release APK（需要 NDK/CMake）。
+  lint 当前为非阻断检查；测试结果和 lint 报告会作为 `test-lint-reports` artifact 保存。
+- 分支/PR 构建产物为 `PhoneSecurityAssistant-<版本>.apk`（release）和
+  `PhoneSecurityAssistant-<版本>-debug.apk`（debug）；没有签名 secrets 时仅供测试的 APK 可未签名。
+- 推送与 `versionName` 完全匹配的 `v<版本>` 标签时，必须配置全部签名 secrets；流水线会用 `apksigner` 验签并在 GitHub Release 发布 APK 与 `SHA256SUMS`。签名缺失、tag 不匹配或验签失败都会阻止发布。
 
 ---
 

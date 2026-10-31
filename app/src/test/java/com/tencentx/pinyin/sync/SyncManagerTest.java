@@ -16,6 +16,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 
 import com.tencentx.pinyin.remote.BinaryManager;
 
@@ -28,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,11 +85,22 @@ public class SyncManagerTest {
     private Context newContext() {
         final Context ctx = mock(Context.class);
         when(ctx.getFilesDir()).thenReturn(tmp.getRoot());
+        final ApplicationInfo appInfo = new ApplicationInfo();
+        appInfo.nativeLibraryDir = new File(tmp.getRoot(), "lib").getAbsolutePath();
+        when(ctx.getApplicationInfo()).thenReturn(appInfo);
+        // Prefs.getSharedPreferences() must not return null; the mock returns
+        // the supplied default value for every missing key.
+        final SharedPreferences prefs = mock(SharedPreferences.class);
+        when(ctx.getSharedPreferences(anyString(), anyInt())).thenReturn(prefs);
+        when(prefs.getString(anyString(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
         return ctx;
     }
 
     private static String read(final File f) throws Exception {
-        return Files.readString(f.toPath());
+        // Files.readString is not available in the Android SDK stubs / desugaring
+        // library used for the test compile classpath.
+        return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
     }
 
     // ----- parseProgress ------------------------------------------------------
@@ -456,8 +470,7 @@ public class SyncManagerTest {
 
     @Test
     public void getSummary_returnsStringForMissingBinary() {
-        final Context ctx = mock(Context.class);
-        when(ctx.getFilesDir()).thenReturn(tmp.getRoot());
+        final Context ctx = newContext();
         when(ctx.getString(anyInt())).thenReturn("summary-text");
         // isBinaryAvailable() is false with the stub -> getString(missing)
         assertEquals("summary-text", SyncManager.getSummary(ctx));
@@ -502,7 +515,8 @@ public class SyncManagerTest {
     private File fakeRclone(final String output) throws IOException {
         final File exe = File.createTempFile("fake-rclone", ".sh");
         exe.deleteOnExit();
-        Files.writeString(exe.toPath(), "#!/bin/sh\necho '" + output + "'\n");
+        Files.write(exe.toPath(),
+                ("#!/bin/sh\necho '" + output + "'\n").getBytes(StandardCharsets.UTF_8));
         exe.setExecutable(true);
         return exe;
     }

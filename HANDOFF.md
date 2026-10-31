@@ -99,7 +99,7 @@ App 内至少可配置远端 URL/协议、凭据、TLS 校验、路径、本地�
 
 ### OpenCode 容器内本地构建
 
-1. 恢复 Android SDK、`sdkmanager`、CMake、NDK 和 Java 环境。CI 工作流使用 JDK 25、SDK 36、NDK `30.0.14904198`、CMake `4.1.2`；版本调整应与 `gradle/libs.versions.toml` 保持一致。
+1. 恢复 Android SDK、`sdkmanager`、CMake、NDK 和 Java 环境。CI 工作流使用 JDK 25、SDK 36、NDK `30.0.16248370`、CMake `4.1.2`；版本调整应与 `gradle/libs.versions.toml` 保持一致。
 2. 如 APK 需要包含 frpc、Tailscale 和哪吒 agent，先下载对应 ABI 的官方二进制：
 
    ```bash
@@ -125,9 +125,11 @@ App 内至少可配置远端 URL/协议、凭据、TLS 校验、路径、本地�
 
 ## GitHub Actions 打包
 
-工作流 `.github/workflows/build-apk.yml` 配置为在 `main`/`master` push、PR、`v*` 标签和手动触发时构建。它会下载 Go 辅助二进制、生成 native 预构建文件、执行 `assembleDebug assembleRelease`，并上传 APK artifacts；推送 `v*` 标签时还会创建 GitHub Release。签名是可选的。
+工作流 `.github/workflows/build-apk.yml` 配置为在 `main`/`master` push、PR、`v*` 标签和手动触发时构建。它会下载 Go 辅助二进制、检查 LibTomMath makefile 与源码列表一致性、生成 native 预构建文件、执行 `testDebugUnitTest lintDebug assembleDebug assembleRelease`，并上传 APK 和测试/lint 报告；推送 `v*` 标签时还会创建 GitHub Release。签名是可选的。
 
-该工作流已于 2026-10-19 提交（d602c5b / 6449d38），但 GitHub Actions 4 次运行均失败在 `Assemble debug + release APKs` 步骤，APK 未成功构建。构建通过前不应把产物或发布流程描述为已验证。
+该工作流已于 2026-10-19 提交（d602c5b / 6449d38）。此前 4 次 GitHub Actions 运行均失败在 APK assemble 步骤，仍需在 GitHub runner 上确认后续构建结果。当前工作流还会运行 `testDebugUnitTest` 和 `lintDebug`，并上传测试/lint 报告；lint 因 Android 模块设置 `abortOnError = false`，目前是非阻断检查。
+
+LibTomMath 的 `helper.pl --check-makefiles` 已在当前源码上通过并纳入 CI。LibTomCrypt 的 `--check-all` 会命中 vendored 文件既有尾随空格，`--check-makefiles` 因缺少 `libtomcrypt_VS2008.vcproj` 无法运行；因此不把其维护检查作为构建门禁，也不在 CI 调用会更新/暂存文件的 `updatemakes.sh`。
 
 ## 后续处理清单
 
@@ -136,7 +138,7 @@ App 内至少可配置远端 URL/协议、凭据、TLS 校验、路径、本地�
 3. 在 SDK 恢复后编译并验证 WebDAV Provider；随后实现 App 管理的单向同步 MVP，再评估定时同步。同步及 WebDAV 写能力完成并真机验证前不得在 README 中列为现有能力。
 4. 如需本地多 ABI APK，运行 `tools/fetch-go-binaries.sh armeabi-v7a arm64-v8a x86_64 x86` 并核验；x86 没有上游 frpc。
 5. 配置正式 release keystore/secrets，使用 `apksigner verify --verbose --print-certs` 验证签名。
-6. 修复 CI 构建失败（`Assemble` 步骤，4 次连续 failure），使 GitHub Actions 转绿；`LICENSE` 已恢复、workflow 已提交、remote 已配置。
+6. 在 GitHub runner 上验证更新后的 CI（JVM 单测、lint、APK assemble），根据失败日志修复构建问题；`LICENSE` 已恢复、workflow 已提交、remote 已配置。
 
 ## 相关文件
 

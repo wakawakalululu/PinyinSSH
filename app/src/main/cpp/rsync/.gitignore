@@ -9,6 +9,8 @@ configure.sh.old
 config.cache
 config.h
 config.h.in
+# Checked-in Android/Bionic configuration (required for clean CI builds).
+!config.h
 config.h.in.old
 config.log
 config.status

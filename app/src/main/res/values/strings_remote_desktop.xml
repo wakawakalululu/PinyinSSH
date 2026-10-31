@@ -6,7 +6,7 @@
     <!-- Screen title. -->
     <string name="rd_screen_title">远程桌面</string>
     <!-- Information text on the remote desktop screen. -->
-    <string name="rd_hint">通过 MediaProjection 捕获屏幕画面，以 MJPEG 方式通过 HTTP 流式传输。在浏览器中打开显示地址即可实时查看并远程操控设备。配合 frpc / Tailscale 可从外网访问。</string>
+     <string name="rd_hint">通过 MediaProjection 捕获屏幕并以 HTTP MJPEG 传输；启用无障碍服务后可远程操控。此服务没有认证或 TLS，任何可访问端口的人都能查看屏幕并可能操控设备。仅限可信私有网络使用，切勿通过公网 frpc 暴露。</string>
 
     <!-- Name of the background service. -->
     <string name="rd_service_name">春夏秋手机安全助手 远程桌面</string>
@@ -30,7 +30,7 @@
     <string name="rd_port">HTTP 端口（默认 8888）</string>
     <!-- Connection URL.
          Param 1: port number. -->
-    <string name="rd_url_fmt">浏览器访问：http://&lt;设备IP&gt;:%1$s\n或通过 Tailscale / frpc 映射后从外网访问</string>
+     <string name="rd_url_fmt">仅在可信局域网或私有 Tailscale 网络访问：http://&lt;设备IP&gt;:%1$s；不要通过公网转发</string>
 
     <!-- Accessibility section header. -->
     <string name="rd_accessibility_section">远程操控设置</string>
@@ -40,6 +40,8 @@
     <string name="rd_accessibility_disabled">无障碍服务未启用，无法远程操控。请在系统设置中开启「春夏秋手机安全助手 远程桌面」无障碍服务。</string>
     <!-- Button: open accessibility settings. -->
     <string name="rd_btn_accessibility">打开无障碍设置</string>
+    <!-- Accessibility service label (shown in system settings). -->
+    <string name="rd_accessibility_name">春夏秋手机安全助手 远程操控</string>
     <!-- Accessibility service description (shown in system settings). -->
     <string name="rd_accessibility_description">允许远程用户通过 春夏秋手机安全助手 远程桌面点击、滑动操控此设备。</string>
 

@@ -11,26 +11,15 @@
         android:viewportHeight="480"
         tools:ignore="VectorRaster">
 
-    <!-- Shield + lock icon, scaled to fit banner left side -->
+    <!-- Shield + terminal mark, scaled to fit banner left side -->
     <group android:scaleX="0.375"
            android:scaleY="0.375"
            android:translateX="30"
            android:translateY="150">
 
-        <!-- Shield -->
-        <path
-            android:fillColor="#ffffff"
-            android:pathData="M150,110 L330,110 L330,240 Q330,290 300,300 L240,390 L180,300 Q150,290 150,240 Z" />
-
-        <!-- Lock shackle (ring shape) -->
-        <path
-            android:fillColor="#ffffff"
-            android:pathData="M195,230 L195,190 Q195,160 240,160 Q285,160 285,190 L285,230 L271,230 L271,190 Q271,174 240,174 Q209,174 209,190 L209,230 Z" />
-
-        <!-- Lock body with keyhole cutout -->
         <path
             android:fillColor="#ffffff"
             android:fillType="evenOdd"
-            android:pathData="M185,230 L295,230 L295,305 Q295,318 282,318 L198,318 Q185,318 185,305 L185,230 Z M248,268 A8,8 0 1,1 232,268 A8,8 0 1,1 248,268 Z M234,272 L246,272 L240,295 Z" />
+            android:pathData="M240,94 L352,134 L345,226 C339,286 301,334 240,376 C179,334 141,286 135,226 L128,134 Z M180,190 L206,211 L180,232 L190,242 L228,211 L190,180 Z M245,232 L294,232 L294,245 L245,245 Z" />
     </group>
 </vector>

@@ -213,17 +213,19 @@ public final class SyncService
             return;
         }
         final List<SyncTask> tasks = SyncTaskStore.load(this);
-        SyncTask task = null;
+        SyncTask found = null;
         for (final SyncTask t : tasks) {
             if (t.getId().equals(taskId)) {
-                task = t;
+                found = t;
                 break;
             }
         }
-        if (task == null) {
+        if (found == null) {
             Log.w(TAG, "Task not found: " + taskId);
             return;
         }
+        // Effectively final for the worker-thread lambda below.
+        final SyncTask task = found;
         if (!task.isConfigured()) {
             markFailed(task, getString(R.string.sync_not_configured));
             return;

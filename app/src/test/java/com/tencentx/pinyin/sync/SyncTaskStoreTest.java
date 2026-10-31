@@ -19,6 +19,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +81,8 @@ public class SyncTaskStoreTest {
 
     private static void writeStore(final Context ctx, final String content) throws IOException {
         final File dir = SyncTaskStore.getDir(ctx);
-        Files.writeString(new File(dir, "tasks.json").toPath(), content);
+        Files.write(new File(dir, "tasks.json").toPath(),
+                content.getBytes(StandardCharsets.UTF_8));
     }
 
     // ----- load / save --------------------------------------------------------
@@ -220,8 +222,8 @@ public class SyncTaskStoreTest {
         final File logFile = SyncTaskStore.getLogFile(ctx, a);
         final File confFile = SyncTaskStore.getConfigFile(ctx, a);
         logFile.getParentFile().mkdirs();
-        Files.writeString(logFile.toPath(), "log");
-        Files.writeString(confFile.toPath(), "conf");
+        Files.write(logFile.toPath(), "log".getBytes(StandardCharsets.UTF_8));
+        Files.write(confFile.toPath(), "conf".getBytes(StandardCharsets.UTF_8));
         assertTrue(logFile.exists());
         assertTrue(confFile.exists());
 

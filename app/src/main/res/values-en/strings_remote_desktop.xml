@@ -6,7 +6,7 @@
     <!-- Screen title. -->
     <string name="rd_screen_title">Remote Desktop</string>
     <!-- Information text on the remote desktop screen. -->
-    <string name="rd_hint">Captures the screen via MediaProjection and streams it as MJPEG over HTTP. Open the display URL in a browser to view and control the device in real time. Use with frpc / Tailscale for remote access.</string>
+     <string name="rd_hint">Streams the screen as MJPEG over HTTP; enable Accessibility for remote control. This service has no authentication or TLS: anyone who can reach the port can view the screen and may control the device. Use only on a trusted private network; never expose it through public frpc.</string>
 
     <!-- Name of the background service. -->
     <string name="rd_service_name">Phone Security Assistant Remote Desktop</string>
@@ -30,7 +30,7 @@
     <string name="rd_port">HTTP port (default 8888)</string>
     <!-- Connection URL.
          Param 1: port number. -->
-    <string name="rd_url_fmt">Open in browser: http://&lt;device-ip&gt;:%1$s\nOr access via Tailscale / frpc from remote network</string>
+     <string name="rd_url_fmt">Use only on a trusted LAN or private Tailscale network: http://&lt;device-ip&gt;:%1$s; do not expose through a public relay</string>
 
     <!-- Accessibility section header. -->
     <string name="rd_accessibility_section">Remote control setup</string>
@@ -40,6 +40,8 @@
     <string name="rd_accessibility_disabled">Accessibility service not enabled, remote control unavailable. Please enable "Phone Security Assistant Remote Desktop" in system Accessibility settings.</string>
     <!-- Button: open accessibility settings. -->
     <string name="rd_btn_accessibility">Open accessibility settings</string>
+    <!-- Accessibility service label (shown in system settings). -->
+    <string name="rd_accessibility_name">Phone Security Assistant Remote Control</string>
     <!-- Accessibility service description (shown in system settings). -->
     <string name="rd_accessibility_description">Allows remote users to tap and swipe to control this device via Phone Security Assistant Remote Desktop.</string>
 

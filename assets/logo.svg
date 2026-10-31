@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="208" viewBox="0 0 760 208" role="img" aria-labelledby="title desc">
+  <title id="title">春夏秋手机安全助手</title>
+  <desc id="desc">Shield with a terminal prompt, followed by the Spring Summer Autumn Phone Security Assistant wordmark.</desc>
+  <rect x="16" y="16" width="176" height="176" rx="38" fill="#176965"/>
+  <path d="M104 39 155 58l-3 42c-3 29-20 49-48 69-28-20-45-40-48-69l-3-42z" fill="#F4FBF9"/>
+  <rect x="73" y="82" width="62" height="41" rx="7" fill="#164B48"/>
+  <path d="m84 92 11 10-11 10 5 5 16-15-16-15z" fill="#58D2BE"/>
+  <rect x="108" y="110" width="17" height="5" rx="2.5" fill="#F2BD55"/>
+  <text x="226" y="94" fill="#173E3C" font-family="Noto Sans SC, Microsoft YaHei, sans-serif" font-size="52" font-weight="700">春夏秋</text>
+  <text x="229" y="137" fill="#426C69" font-family="Noto Sans SC, Microsoft YaHei, sans-serif" font-size="27" font-weight="500">手机安全助手</text>
+  <text x="229" y="176" fill="#426C69" font-family="sans-serif" font-size="16" font-weight="700">SSH  |  FILE SYNC  |  REMOTE ACCESS</text>
+</svg>

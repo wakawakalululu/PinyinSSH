@@ -33,8 +33,8 @@
 # Bring Debian up-to-date if needed.
 sudo apt update && sudo apt upgrade -y
 
-# Install Java 21
-sudo apt install -y openjdk-21-jdk-headless
+# Install Java 25 (required by the Gradle toolchain)
+sudo apt install -y openjdk-25-jdk-headless
 
 # Install build-essential: glibc headers + tools for the NDK,
 # unzip/wget for the SDK tools and gawk/awk for rsync building

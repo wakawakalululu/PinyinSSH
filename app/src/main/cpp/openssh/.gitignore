@@ -3,10 +3,16 @@ Makefile
 buildpkg.sh
 config.h
 config.log
+# Checked-in Android/Bionic configuration (required for clean CI builds).
+!config.h
 config.status
 openbsd-compat/Makefile
 openbsd-compat/regress/Makefile
 openbsd-compat/include
+# Bionic has no util.h/nlist.h/netgroup.h; empty compatibility shims are
+# checked in so a clean checkout can build sftp-server.
+!openbsd-compat/include/
+!openbsd-compat/include/*
 openssh.xml
 opensshd.init
 survey.sh

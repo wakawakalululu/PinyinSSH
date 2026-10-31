@@ -1,5 +1,7 @@
 # Phone Security Assistant
 
+<p align="center"><img src="assets/logo.svg" alt="Spring Summer Autumn Phone Security Assistant" width="720" /></p>
+
 **Turn your Android device into a small SSH-accessible host.**
 
 Phone Security Assistant runs a full `sshd` server (based on Dropbear) inside the app and also
@@ -19,6 +21,9 @@ original features it adds:
 - **Tailscale networking**: runs the official `tailscaled` to join your tailnet
 - **Nezha monitoring**: runs the official `nezha-agent` to report device status
   to a Nezha dashboard
+- **Remote ADB bridge**: a separate SSH entry with key authorization and command-prefix policies, disabled by default
+- **Remote desktop**: screen sharing with optional touch control
+- **File sync**: one-way rclone copy between SFTP/WebDAV and local storage
 - **WebDAV file access**: read-only HTTPS WebDAV browsing in the Android system file picker through SAF; no system mount path is created
 
 | Item | Value |
@@ -41,7 +46,10 @@ original features it adds:
 - [Quick start](#quick-start)
 - [Privilege modes in detail](#privilege-modes-in-detail)
 - [Using the built-in terminal](#using-the-built-in-terminal)
+- [Remote ADB bridge](#remote-adb-bridge)
+- [Remote desktop](#remote-desktop)
 - [Read-only WebDAV access](#read-only-webdav-access)
+- [File sync](#file-sync)
 - [frpc tunnel setup guide](#frpc-tunnel-setup-guide)
 - [Tailscale networking guide](#tailscale-networking-guide)
 - [Nezha monitoring setup guide](#nezha-monitoring-setup-guide)
@@ -63,11 +71,10 @@ services. The services are provided by:
 > **Note**: the app does **not** start an rsync daemon. Clients invoke the
 > remote `rsync` over SSH (the usual `rsync -e ssh` usage).
 
-Rsync-over-SSH transfers are initiated by a remote client. The read-only WebDAV
-SAF provider is now compiled and packaged into the APK (HTTPS + Basic auth,
-directory browsing and streaming file reads); interoperability with a live
-WebDAV server has not been tested on a real device yet, and in-app sync jobs
-are not implemented.
+Rsync-over-SSH transfers are initiated by a remote client. The current source
+also contains a read-only WebDAV SAF provider, one-way rclone sync, a remote ADB
+bridge and remote desktop. These newer features still require validation on
+target Android devices; check the build/release record for the exact APK contents.
 
 Service endpoints, credentials, privilege modes, auto-start and remote-tool
 controls are configured in the app's Settings and management screens. Runtime
@@ -81,6 +88,9 @@ edit them manually.
 | SSH server | sshd (Dropbear 2026.94) | Configurable port (default 2222), interfaces, extra command line options, environment variables, home directory, login shell |
 | File transfer | rsync 3.4.4 / sftp / scp | sftp/scp via `sftp-server` from OpenSSH 10.4p1; no rsync daemon |
 | WebDAV | SAF document provider | Browse/open HTTPS WebDAV files read-only in the system file picker; no local filesystem mount |
+| Remote ADB | SSH command bridge | Separate SSH port and authorized keys; default empty allowlist rejects all commands; bridge disabled by default; no fallback when ADB is disconnected |
+| Remote desktop | Screen sharing | MediaProjection + HTTP MJPEG; Accessibility required for touch control; **no authentication/TLS, trusted private networks only** |
+| File sync | rclone | One-way SFTP/WebDAV ↔ local copy, scheduling and progress; no delete propagation or bidirectional sync |
 | Authentication | System username + password | Stored as a SHA-512 hash |
 | | Single-use passwords | A one-time password can be displayed in the app when a login is attempted |
 | | Public key login | Import `authorized_keys` from a file or an https URL, or delete all keys |
@@ -262,12 +272,55 @@ Under "Settings → Privileges & Escalation" you can configure the
   ADB mode is selected without a connection, the app asks you to pair and
   connect on the "Remote & monitoring" screen first.
 
+## Remote ADB bridge
+
+This is a separate SSH entry, distinct from the in-app terminal's ADB mode.
+When enabled in "Settings → Remote ADB Bridge", a second Dropbear instance
+uses its own authorized keys and forwards commands to the device's connected
+Wireless Debugging ADB session. The bridge is disabled by default, and its
+default empty command allowlist rejects every command. A disconnected ADB
+session fails closed; commands are never rerouted to the app or root shell.
+Treat this as a remote command endpoint: enable it only after configuring
+dedicated keys and a narrow command policy.
+
+## Remote desktop
+
+Remote desktop captures the display with MediaProjection and streams MJPEG over
+HTTP (default port `8888`). Enabling the app's Accessibility service also
+allows browser-based taps and swipes.
+
+**Security limitation:** this service has no authentication or TLS. Anyone who
+can reach its port can view the screen and, when Accessibility control is
+enabled, may control the device. Use only on a trusted LAN or private Tailscale
+network. Never expose it through public frpc or another public relay.
+
 ## Read-only WebDAV access
 
 1. Open "Settings → WebDAV (read-only files)" and enter an HTTPS server URL and optional username/password.
 2. In the system file picker, choose the "Phone Security Assistant WebDAV" root to browse directories and open files.
 
 The provider exposes read-only `content://` documents through Android SAF. It does not create a `/mnt/...` mount, so command-line programs cannot use it as a local path. Upload, delete, rename and offline caching are not supported.
+
+## File sync
+
+The rclone MVP copies files in one direction between an SFTP/WebDAV remote and
+a local device directory.
+
+1. Install rclone from the "File sync" screen or configure its executable in
+  "Settings → File sync rclone". A bundled `jniLibs` binary can run without
+  root; a binary downloaded/imported into app storage requires root on modern
+  Android versions.
+2. Create a task with its remote type, server, credentials, paths and copy
+  direction. Local paths are filesystem paths such as `/sdcard/Photos`, not
+  SAF `content://` URIs.
+3. Start the task to view progress and logs. Tasks can be stopped, edited or
+  deleted. Optional interval scheduling supports Wi-Fi/charging conditions,
+  rescheduling after reboot and completion notifications.
+
+This is a one-way `copy`: it does not delete extra destination files and does
+not provide bidirectional synchronization. The feature is present in source,
+but still needs a successful Android build and device validation before being
+considered verified in a release.
 
 ## frpc tunnel setup guide
 
@@ -574,7 +627,7 @@ public port to differ from the local one, fill it in explicitly.
 ### Requirements
 
 - Android SDK (`compileSdk 36`) with `ANDROID_HOME` set;
-- **NDK 30.0.14904198** and **CMake 4.1.2** (versions in
+- **NDK 30.0.16248370** and **CMake 4.1.2** (versions in
   `gradle/libs.versions.toml`; `app/CMakeLists.txt` builds the native
   components);
 - JDK: the Gradle toolchain is **Java 25** (see
@@ -645,12 +698,18 @@ Notes:
 
 - The workflow `.github/workflows/build-apk.yml` downloads helper binaries
   for `armeabi-v7a`, `arm64-v8a`, `x86_64` and `x86` by default (upstream frpc
-  has no x86 build), then builds debug/release APKs on GitHub Actions.
-- Release APKs are named `PhoneSecurityAssistant-<version>.apk`; debug APKs are named
-  `PhoneSecurityAssistant-<version>-debug.apk`. When the repository secrets
-  (`KEYSTORE_BASE64`, ...) are configured the release APK is signed (see
-  `BUILDING-SIGNING`), otherwise it is unsigned. Pushing a `v*` tag also
-  creates a GitHub Release with both APKs attached.
+  has no x86 build), checks LibTomMath's makefile/source-list consistency,
+  runs JVM unit tests and Android lint, then builds debug/release APKs on
+  GitHub Actions. Lint is currently non-blocking; test results and lint reports
+  are retained as the `test-lint-reports` artifact.
+- Branch/PR artifacts are named `PhoneSecurityAssistant-<version>.apk` for
+  release and `PhoneSecurityAssistant-<version>-debug.apk` for debug. A branch
+  release APK may be unsigned when signing secrets are unavailable.
+- Publishing a GitHub Release requires a `v<versionName>` tag and all signing
+  secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
+  The workflow verifies the APK with `apksigner` and attaches both APKs and
+  `SHA256SUMS`; a missing secret, tag/version mismatch or signature failure
+  blocks publication. Tags containing `-` are marked as prereleases.
 
 ---
 
