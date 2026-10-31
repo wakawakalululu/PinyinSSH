@@ -34,8 +34,9 @@
 #define HAVE_GETTIMEOFDAY_TZ 1
 #define HAVE_GETXATTR 1
 #define HAVE_GRP_H 1
-#define HAVE_ICONV_H 1
-#define HAVE_ICONV_OPEN 1
+/* Bionic iconv functions are available from API 28; the app supports API 26. */
+/* #undef HAVE_ICONV_H */
+/* #undef HAVE_ICONV_OPEN */
 #define HAVE_ID_T 1
 #define HAVE_INET_NTOP 1
 #define HAVE_INET_PTON 1
@@ -133,7 +134,7 @@
 #define HAVE_WAITPID 1
 #define HAVE_ZLIB_H 1
 #define ICONV_CONST
-#define ICONV_OPTION NULL
+/* #undef ICONV_OPTION */
 #define MAJOR_IN_SYSMACROS 1
 #define NOBODY_GROUP "nobody"
 #define NOBODY_USER "nobody"
@@ -165,7 +166,7 @@
 #define SIZEOF_UINT32_T 4
 #define STDC_HEADERS 1
 #define SUPPORT_XATTRS 1
-#define USE_ICONV_OPEN 1
+/* #undef USE_ICONV_OPEN */
 #define UTF8_CHARSET "UTF-8"
 #define _GNU_SOURCE 1
 
