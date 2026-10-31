@@ -292,6 +292,8 @@ jobs:
           gradle_exit=$?
           set -e
           if [ ${gradle_exit} -ne 0 ]; then
+            mkdir -p app/build/outputs/logs
+            cp /tmp/gradle-output.log app/build/outputs/logs/gradle-output.log
             echo "::error::Gradle exited with code ${gradle_exit}. Extracting failure details:"
             # Print the FAILURE section and surrounding context as annotations
             grep -n -A 30 "^FAILURE:" /tmp/gradle-output.log | head -40 | while IFS= read -r line; do
