@@ -1146,7 +1146,8 @@
 #define HAVE_REALLOC 0
 
 /* Define to 1 if you have the 'reallocarray' function. */
-#define HAVE_REALLOCARRAY 1
+/* Bionic exposes reallocarray starting at API 29; minSdk is 26. */
+/* #undef HAVE_REALLOCARRAY */
 
 /* Define to 1 if you have the 'realpath' function. */
 #define HAVE_REALPATH 1
