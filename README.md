@@ -605,7 +605,8 @@ tools/fetch-go-binaries.sh --force arm64-v8a
   lint 当前为非阻断检查；测试结果和 lint 报告会作为 `test-lint-reports` artifact 保存。
 - 分支/PR 构建产物为 `PhoneSecurityAssistant-<版本>.apk`（release）和
   `PhoneSecurityAssistant-<版本>-debug.apk`（debug）；没有签名 secrets 时仅供测试的 APK 可未签名。
-- 推送与 `versionName` 完全匹配的 `v<版本>` 标签时，必须配置全部签名 secrets；流水线会用 `apksigner` 验签并在 GitHub Release 发布 APK 与 `SHA256SUMS`。签名缺失、tag 不匹配或验签失败都会阻止发布。
+- 默认分支每次提交构建成功后会生成 `v<版本>-<12 位提交哈希>` 标签，并在 GitHub Release 发布经 `apksigner` 验证的 APK 与 `SHA256SUMS`。发布必须配置全部签名 secrets：`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`；缺失或验签失败会阻止发布。显式推送 `v<版本>` 或匹配格式的标签也会发布。
+- [项目文档站](https://wakawakalululu.github.io/PinyinSSH/)由 `docs/` 自动部署；Wiki 以仓库 `wiki/` 目录为内容源，需配置可写 Wiki 的 `WIKI_TOKEN` 仓库 Secret 才会自动同步。
 
 ---
 

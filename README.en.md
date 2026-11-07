@@ -705,11 +705,16 @@ Notes:
 - Branch/PR artifacts are named `PhoneSecurityAssistant-<version>.apk` for
   release and `PhoneSecurityAssistant-<version>-debug.apk` for debug. A branch
   release APK may be unsigned when signing secrets are unavailable.
-- Publishing a GitHub Release requires a `v<versionName>` tag and all signing
-  secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
-  The workflow verifies the APK with `apksigner` and attaches both APKs and
-  `SHA256SUMS`; a missing secret, tag/version mismatch or signature failure
-  blocks publication. Tags containing `-` are marked as prereleases.
+- Every successful default-branch build creates a
+  `v<versionName>-<12-character-commit-hash>` tag and publishes the APKs and
+  `SHA256SUMS` to GitHub Releases. Publication requires all signing secrets
+  (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) and
+  verifies the APK with `apksigner`; missing secrets or signature failures block
+  publication. Explicit `v<versionName>` tags are supported too; tags containing
+  `-` are marked as prereleases.
+- The [project documentation site](https://wakawakalululu.github.io/PinyinSSH/)
+  deploys from `docs/`. Wiki pages are maintained in `wiki/` and synced to the
+  GitHub Wiki when the repository has a writable `WIKI_TOKEN` secret.
 
 ---
 

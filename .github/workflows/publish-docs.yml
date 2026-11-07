@@ -1,0 +1,73 @@
+name: Publish documentation
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'docs/**'
+      - 'wiki/**'
+      - '.github/workflows/publish-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pages:
+    name: Deploy GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  wiki:
+    name: Sync GitHub Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Publish wiki pages
+        env:
+          GH_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        run: |
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "::warning::WIKI_TOKEN is not configured; skipping Wiki sync. Add a repository secret with Wiki write access."
+            exit 0
+          fi
+
+          gh auth setup-git
+          wiki_dir="${RUNNER_TEMP}/project-wiki"
+          git clone --quiet "https://github.com/${GITHUB_REPOSITORY}.wiki.git" "${wiki_dir}"
+          rsync --archive --delete --exclude=.git wiki/ "${wiki_dir}/"
+          git -C "${wiki_dir}" config user.name "github-actions[bot]"
+          git -C "${wiki_dir}" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "${wiki_dir}" add --all
+          if git -C "${wiki_dir}" diff --cached --quiet; then
+            echo "Wiki is already up to date."
+          else
+            git -C "${wiki_dir}" commit -m "Sync wiki from ${GITHUB_SHA}"
+            git -C "${wiki_dir}" push origin master
+          fi
