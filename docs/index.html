@@ -1,41 +1,76 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang='zh-CN'>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="春夏秋手机安全助手项目文档、Wiki 与下载入口。">
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <meta name='description' content='春夏秋手机安全助手：在 Android 上运行 SSH 服务，提供文件传输、内网穿透、Tailscale 组网与远程运维。'>
   <title>春夏秋手机安全助手</title>
   <style>
-    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-    body { box-sizing: border-box; margin: 0 auto; max-width: 760px; padding: 3rem 1.25rem; line-height: 1.7; }
-    h1 { line-height: 1.25; }
-    .links { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 2rem 0; }
-    a.card { border: 1px solid #8886; border-radius: .75rem; color: inherit; padding: 1.25rem; text-decoration: none; }
-    a.card:hover { border-color: #0969da; }
-    a.card strong { display: block; font-size: 1.1rem; }
-    .muted { opacity: .75; }
+    :root { color-scheme: light dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; --accent:#0969da; }
+    * { box-sizing: border-box; }
+    body { margin: 0 auto; max-width: 880px; padding: 3rem 1.25rem; line-height: 1.7; }
+    h1 { line-height: 1.25; margin-bottom: .25rem; }
+    .tag { color: var(--accent); font-weight: 600; letter-spacing: .02em; }
+    .lede { font-size: 1.1rem; opacity: .85; }
+    h2 { margin-top: 2.5rem; border-bottom: 1px solid #8884; padding-bottom: .35rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin: 1.25rem 0; }
+    .card { border: 1px solid #8885; border-radius: .75rem; padding: 1.1rem; }
+    .card h3 { margin: .1rem 0 .4rem; font-size: 1.05rem; }
+    .card p { margin: 0; opacity: .8; font-size: .94rem; }
+    .warn { border-left: 4px solid #d1242f; background: #d1242f14; padding: .9rem 1.1rem; border-radius: .5rem; }
+    .warn strong { color: #d1242f; }
+    pre { background: #8881; padding: .9rem 1rem; border-radius: .5rem; overflow:auto; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .links { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 1.25rem 0; }
+    a.ent { border: 1px solid #8885; border-radius: .75rem; color: inherit; padding: 1.1rem; text-decoration: none; }
+    a.ent:hover { border-color: var(--accent); }
+    a.ent strong { display:block; font-size:1.05rem; }
+    .muted { opacity: .7; }
+    footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #8884; font-size: .9rem; }
   </style>
 </head>
 <body>
-  <main>
-    <p class="muted">Android SSH / 远程管理</p>
-    <h1>春夏秋手机安全助手</h1>
-    <p>在 Android 设备上运行 SSH 服务，并提供文件传输、远程 ADB、内网穿透与组网能力。</p>
-    <nav class="links" aria-label="项目入口">
-      <a class="card" href="https://github.com/wakawakalululu/PinyinSSH/blob/master/README.md">
-        <strong>项目说明</strong>功能介绍、安装指南与常见问题
-      </a>
-      <a class="card" href="https://github.com/wakawakalululu/PinyinSSH/wiki">
-        <strong>Wiki</strong>使用教程与开发文档
-      </a>
-      <a class="card" href="https://github.com/wakawakalululu/PinyinSSH/releases">
-        <strong>下载 Releases</strong>获取签名发布的 APK 与校验和
-      </a>
-      <a class="card" href="https://github.com/wakawakalululu/PinyinSSH">
-        <strong>GitHub 仓库</strong>源码、问题反馈与贡献指南
-      </a>
-    </nav>
-    <p class="muted">English: <a href="https://github.com/wakawakalululu/PinyinSSH/blob/master/README.en.md">README</a></p>
-  </main>
+  <p class='tag'>Android SSH · 远程管理 · 文件同步</p>
+  <h1>春夏秋手机安全助手</h1>
+  <p class='lede'>把 Android 设备变成一台可通过标准 SSH 访问的小主机：在应用内运行完整 <code>sshd</code>，并提供 <code>rsync</code>、<code>sftp</code>/<code>scp</code> 文件传输，以及内网穿透、Tailscale 组网与远程运维能力。</p>
+
+  <h2>核心能力</h2>
+  <div class='grid'>
+    <div class='card'><h3>SSH 服务</h3><p>基于 Dropbear 的 sshd，可配置端口（默认 2222）、监听接口与登录方式。</p></div>
+    <div class='card'><h3>文件传输</h3><p>rsync / sftp / scp，由 OpenSSH sftp-server 提供；无需额外守护进程。</p></div>
+    <div class='card'><h3>提权模式</h3><p>应用权限 / Root（su）/ ADB（无线调试）三种运行身份。</p></div>
+    <div class='card'><h3>内置终端</h3><p>在应用内以不同权限执行命令并实时查看输出。</p></div>
+    <div class='card'><h3>内网穿透</h3><p>托管官方 frpc，把本机 sshd 端口映射到公网 frps。</p></div>
+    <div class='card'><h3>Tailscale 组网</h3><p>托管官方 tailscaled，加入你自己的 tailnet。</p></div>
+    <div class='card'><h3>哪吒监控</h3><p>托管官方 nezha-agent，向面板汇报设备状态。</p></div>
+    <div class='card'><h3>远程桌面</h3><p>屏幕共享与可选触控控制（仅限可信私有网络）。</p></div>
+  </div>
+
+  <div class='warn'>
+    <strong>安全警告：</strong>远程桌面等 HTTP 服务没有认证和 TLS，只能在可信的私有网络中使用，禁止直接暴露到公网。Root / ADB 权限与端口映射会显著扩大操作影响范围；请只授权可信密钥并确认网络边界。使用前请阅读 <a href='https://github.com/wakawakalululu/PinyinSSH/blob/master/README.md#安全说明与免责声明'>安全说明与免责声明</a>。
+  </div>
+
+  <h2>快速连接</h2>
+  <p>在同一可信局域网内，用任意标准 SSH 客户端连接：</p>
+  <pre><code>ssh -p 2222 your-user@phone-ip
+
+# 文件备份（经由 SSH）
+rsync -avP -e "ssh -p 2222" ./photos/ user@192.168.1.100:/sdcard/backup/photos/
+
+# 上传单个文件
+scp -P 2222 ./file.txt user@192.168.1.100:/sdcard/</code></pre>
+
+  <h2>获取与文档</h2>
+  <nav class='links' aria-label='项目入口'>
+    <a class='ent' href='https://github.com/wakawakalululu/PinyinSSH/releases'><strong>下载 Releases</strong>签名发布的 APK 与 SHA256SUMS</a>
+    <a class='ent' href='https://github.com/wakawakalululu/PinyinSSH/blob/master/README.md'><strong>项目说明</strong>功能、安装与配置教程</a>
+    <a class='ent' href='https://github.com/wakawakalululu/PinyinSSH/wiki'><strong>Wiki</strong>使用教程与开发文档</a>
+    <a class='ent' href='https://github.com/wakawakalululu/PinyinSSH'><strong>GitHub 仓库</strong>源码、Issue 与贡献</a>
+  </nav>
+
+  <footer>
+    <p class='muted'>应用名：春夏秋手机安全助手 · 包名：<code>com.tencentx.pinyin</code> · 许可证：MIT</p>
+    <p class='muted'>English: <a href='https://github.com/wakawakalululu/PinyinSSH/blob/master/README.en.md'>README</a></p>
+  </footer>
 </body>
 </html>
